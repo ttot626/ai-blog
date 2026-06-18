@@ -15,6 +15,8 @@
 
 - [x] 第 1 周：项目启动 + MySQL + 用户注册
 - [x] 第 2 周：用户登录 + JWT Token
+- [x] 第 3 周：文章发布 / 列表 / 详情 / 编辑 / 删除
+- [x] 第 4 周：评论 / 回复 / 查询 / 删除
 
 ## 快速开始
 
@@ -90,6 +92,40 @@ Content-Type: application/json
 }
 ```
 
+**发布文章（需要 Token）：**
+
+```text
+POST http://localhost:8080/article/add
+Authorization: Bearer 你的token
+Content-Type: application/json
+
+{
+  "title": "我的第一篇博客",
+  "content": "Hello AI Blog"
+}
+```
+
+**文章列表 / 详情：**
+
+```text
+GET http://localhost:8080/article/list
+GET http://localhost:8080/article/detail?id=1
+```
+
+**发表评论 / 回复（需要 Token）：**
+
+```text
+POST http://localhost:8080/comment/add
+Authorization: Bearer 你的token
+Content-Type: application/json
+
+{
+  "articleId": 1,
+  "content": "写得不错",
+  "parentId": null
+}
+```
+
 ### 5. 验证数据库
 
 ```sql
@@ -107,6 +143,8 @@ src/main/java/com/example/xiangmu1/
 ├── mapper/           # 数据库层
 ├── entity/           # 实体类
 ├── dto/              # 请求参数对象
+├── vo/               # 返回给前端的数据对象
+├── config/           # 拦截器、配置
 ├── util/             # 工具类（JWT 等）
 └── common/           # 公共组件（异常处理等）
 ```

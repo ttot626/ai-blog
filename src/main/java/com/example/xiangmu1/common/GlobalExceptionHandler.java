@@ -15,4 +15,12 @@ public class GlobalExceptionHandler {
                 "message", e.getMessage()
         );
     }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public Map<String, Object> handleUnauthorized(UnauthorizedException e) {
+        return Map.of(
+                "code", 401,
+                "message", e.getMessage()
+        );
+    }
 }
