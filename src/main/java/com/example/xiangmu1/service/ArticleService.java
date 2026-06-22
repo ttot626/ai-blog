@@ -10,6 +10,8 @@ public interface ArticleService {
 
     List<ArticleVO> list();
 
+    List<ArticleVO> hot(int limit);
+
     ArticleVO detail(Long id);
 
     void update(Long id, String title, String content, Long userId);

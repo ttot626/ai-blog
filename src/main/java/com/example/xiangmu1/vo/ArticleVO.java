@@ -13,4 +13,7 @@ public class ArticleVO {
     private Long userId;
     private String username;
     private LocalDateTime createTime;
+    private Long likeCount;
+    private Boolean liked;
+    private Boolean favorited;
 }

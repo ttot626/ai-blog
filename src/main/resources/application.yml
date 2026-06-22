@@ -7,6 +7,11 @@ spring:
     username: root
     password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 3000ms
 
 mybatis-plus:
   configuration:
@@ -16,3 +21,20 @@ mybatis-plus:
 jwt:
   secret: ai-blog-jwt-secret-key-2026-must-be-long-enough-for-hs256
   expiration: 86400000
+
+deepseek:
+  api-key: ${DEEPSEEK_API_KEY:请替换为你的DeepSeek密钥}
+  base-url: https://api.deepseek.com
+  model: deepseek-chat
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+app:
+  cache:
+    article-list-ttl-minutes: 10
+    hot-article-ttl-minutes: 30
+    user-info-ttl-minutes: 60
