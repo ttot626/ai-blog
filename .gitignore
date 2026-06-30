@@ -38,3 +38,7 @@ bin/
 
 ### Environment ###
 .env
+
+### Postman ###
+postman/
+.postman/

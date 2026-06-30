@@ -87,6 +87,17 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public Long getUserIdByUsername(String username) {
+        User user = userMapper.selectOne(
+                new LambdaQueryWrapper<User>().eq(User::getUsername, username)
+        );
+        if (user == null) {
+            throw new IllegalArgumentException("用户不存在");
+        }
+        return user.getId();
+    }
+
+    @Override
     public UserHomeVO home(Long userId) {
         if (userId == null) {
             throw new IllegalArgumentException("用户ID不能为空");

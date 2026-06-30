@@ -8,5 +8,7 @@ public interface UserService {
 
     String login(String username, String password);
 
+    Long getUserIdByUsername(String username);
+
     UserHomeVO home(Long userId);
 }

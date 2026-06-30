@@ -35,9 +35,15 @@ public class UserController {
 
     @Operation(summary = "用户登录")
     @PostMapping("/login")
-    public Result<Map<String, String>> login(@RequestBody LoginRequest request) {
+    public Result<Map<String, Object>> login(@RequestBody LoginRequest request) {
         String token = userService.login(request.getUsername(), request.getPassword());
-        return Result.success("登录成功", Map.of("token", token));
+        Long userId = userService.getUserIdByUsername(request.getUsername());
+        Map<String, Object> data = Map.of(
+                "token", token,
+                "userId", userId,
+                "username", request.getUsername()
+        );
+        return Result.success("登录成功", data);
     }
 
     @Operation(summary = "用户主页")
