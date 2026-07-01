@@ -28,7 +28,7 @@ mybatis-plus:
     map-underscore-to-camel-case: true
 
 jwt:
-  secret: ${JWT_SECRET:please-change-this-jwt-secret-in-production}
+  secret: ${JWT_SECRET:ai-blog-jwt-secret-key-2026-must-be-long-enough-for-hs256}
   expiration: 86400000
 
 deepseek:
