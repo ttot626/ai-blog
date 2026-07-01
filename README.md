@@ -3,6 +3,16 @@
 基于 Spring Boot 的全栈 AI 博客系统，支持 **Web 网页** 与 **JavaFX 桌面独立窗口** 两种使用方式。
 
 [![GitHub](https://img.shields.io/badge/GitHub-ttot626%2Fai--blog-blue)](https://github.com/ttot626/ai-blog)
+[![Release](https://img.shields.io/github/v/release/ttot626/ai-blog?label=下载桌面版)](https://github.com/ttot626/ai-blog/releases)
+
+## 下载桌面版（无需安装 Java）
+
+前往 **[Releases 发布页](https://github.com/ttot626/ai-blog/releases)**，下载 `AIBlog-x.x.x-Windows.zip`：
+
+1. 解压 zip
+2. MySQL 执行 `sql\init.sql`
+3. 修改 `config\application.yml` 数据库密码
+4. 双击 **`AI Blog.bat`** 启动
 
 ## 功能概览
 
@@ -53,14 +63,20 @@ mvn spring-boot:run
 
 接口文档：http://localhost:8080/swagger-ui.html
 
-### 4. 打包桌面软件
+### 4. 本地打包 / 发布到 GitHub
 
-1. 安装 JDK 21（含 `jpackage`）
-2. 暂停 OneDrive 同步，关闭占用 8080 端口的进程
-3. 双击 [`打包EXE.bat`](打包EXE.bat)
-4. 启动：`C:\AIBlog-build\AIBlog\AI Blog.bat`
+**本地打包：** 双击 [`打包EXE.bat`](打包EXE.bat)，产物在 `target\dist\AIBlog-1.0.0-Windows.zip`
 
-> 请使用 `AI Blog.bat` 或 `AI Blog.vbs` 启动，勿用 `AIBlog.exe`（部分环境会报 JVM 启动失败）。若内置 Java 缺失，运行目录下的 `修复启动.bat`。
+**发布到 GitHub（自动构建并上传）：**
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+推送 tag 后，GitHub Actions 会自动打包并创建 [Release](https://github.com/ttot626/ai-blog/releases) 供他人下载。
+
+> 请使用 `AI Blog.bat` 或 `AI Blog.vbs` 启动，勿用 `AIBlog.exe`。若内置 Java 缺失，运行 `修复启动.bat`。
 
 ## 核心接口
 
@@ -103,7 +119,7 @@ mvn spring-boot:run
 
 - 当前密码为明文存储，生产环境请使用 BCrypt 等加密方案
 - 请勿将真实 API Key 和数据库密码提交到公开仓库
-- 打包输出目录为 `C:\AIBlog-build\`，不在仓库内
+- 打包产物（zip）体积约 300MB，已通过 GitHub Releases 分发，不提交进仓库
 
 ## 仓库
 

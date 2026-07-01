@@ -1,0 +1,31 @@
+AI Blog Windows 桌面版 - 使用说明
+================================
+
+【环境要求】
+  - Windows 10 / 11
+  - MySQL 8（需提前安装并启动）
+
+【首次使用】
+  1. 解压本 zip 到任意目录（路径尽量不要有中文）
+  2. 用 MySQL 客户端执行 sql\init.sql，创建 ai_blog 数据库和表
+  3. 打开 config\application.yml，修改数据库用户名和密码
+  4. 双击 AI Blog.bat 启动（独立软件窗口，无需浏览器）
+
+【启动方式】
+  推荐：AI Blog.bat 或 AI Blog.vbs（无黑窗口）
+  备用：AI Blog-备用.bat（使用系统 Java）
+  不推荐：AIBlog.exe（部分电脑会报 JVM 启动失败）
+
+【启动失败？】
+  1. 确认 MySQL 已启动，且已执行 sql\init.sql
+  2. 运行 修复启动.bat 补全内置 Java
+  3. 确认 8080 端口未被其他程序占用
+
+【可选组件】
+  - Redis：未安装也可运行，只是没有缓存加速
+  - DeepSeek：在 config\application.yml 配置 API Key 后可使用 AI 功能
+
+【接口文档】
+  启动后访问 http://localhost:8080/swagger-ui.html
+
+项目地址：https://github.com/ttot626/ai-blog

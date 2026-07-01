@@ -1,0 +1,102 @@
+name: Release Windows Desktop
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Get version from tag
+        id: version
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build desktop JAR
+        run: mvn package -Pdesktop -DskipTests -B
+
+      - name: Prepare jpackage input
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path target/jpackage-input | Out-Null
+          Copy-Item target/ai-blog.jar target/jpackage-input/
+
+      - name: Package with jpackage
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.VERSION }}"
+          jpackage `
+            --input target/jpackage-input `
+            --dest target/dist `
+            --name AIBlog `
+            --main-jar ai-blog.jar `
+            --main-class org.springframework.boot.loader.launch.JarLauncher `
+            --type app-image `
+            --app-version $version `
+            --vendor "AI Blog" `
+            --description "AI Blog 桌面版" `
+            --java-options "-Dfile.encoding=UTF-8" `
+            --java-options "-Dapp.auto-open-browser=false"
+
+      - name: Assemble release bundle
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.VERSION }}"
+          $appDir = "target/dist/AIBlog"
+          $zipName = "AIBlog-$version-Windows.zip"
+
+          @"
+          @echo off
+          cd /d "%~dp0"
+          start "" "%~dp0runtime\bin\javaw.exe" -jar "%~dp0app\ai-blog.jar"
+          "@ | Set-Content -Path "$appDir/AI Blog.bat" -Encoding ASCII
+
+          @"
+          Set WshShell = CreateObject("WScript.Shell")
+          WshShell.CurrentDirectory = CreateObject("Scripting.FileSystemObject").GetParentFolderName(WScript.ScriptFullName)
+          WshShell.Run """" & WshShell.CurrentDirectory & "\runtime\bin\javaw.exe"" -jar """ & WshShell.CurrentDirectory & "\app\ai-blog.jar""", 0, False
+          "@ | Set-Content -Path "$appDir/AI Blog.vbs" -Encoding ASCII
+
+          New-Item -ItemType Directory -Force -Path "$appDir/sql", "$appDir/config" | Out-Null
+          Copy-Item sql/init.sql "$appDir/sql/"
+          Copy-Item installer/config/application.yml "$appDir/config/"
+          Copy-Item installer/修复启动.bat "$appDir/"
+          Copy-Item release/使用说明.txt "$appDir/"
+
+          Compress-Archive -Path $appDir -DestinationPath "target/dist/$zipName" -Force
+          Write-Host "Created target/dist/$zipName"
+
+      - name: Generate release notes
+        id: notes
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.VERSION }}"
+          $body = Get-Content release/GITHUB_RELEASE.md -Raw -Encoding UTF8
+          $body = $body.Replace('{{VERSION}}', $version)
+          $body | Out-File -FilePath release-body.md -Encoding utf8NoBOM
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: AI Blog v${{ steps.version.outputs.VERSION }}
+          body_path: release-body.md
+          files: target/dist/AIBlog-${{ steps.version.outputs.VERSION }}-Windows.zip
+          draft: false
+          prerelease: false
