@@ -138,7 +138,9 @@ docker compose up -d --build
 
 ## 注意事项
 
-- 当前密码为明文存储，生产环境请使用 BCrypt 等加密方案
+- 用户密码使用 **BCrypt** 加密存储，数据库中不保存明文
+- 旧账号首次登录会自动升级为 BCrypt 密文
+- 定期备份：在服务器 `deploy/backup.sh` 可导出 MySQL 数据
 - 请勿将真实 API Key 和数据库密码提交到公开仓库
 - 打包产物（zip）体积约 300MB，已通过 GitHub Releases 分发，不提交进仓库
 

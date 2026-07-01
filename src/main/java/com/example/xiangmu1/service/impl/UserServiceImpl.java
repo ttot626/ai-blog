@@ -13,6 +13,7 @@ import com.example.xiangmu1.service.UserService;
 import com.example.xiangmu1.util.JwtUtil;
 import com.example.xiangmu1.vo.ArticleVO;
 import com.example.xiangmu1.vo.UserHomeVO;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -28,19 +29,48 @@ public class UserServiceImpl implements UserService {
     private final ArticleLikeService articleLikeService;
     private final JwtUtil jwtUtil;
     private final CacheService cacheService;
+    private final PasswordEncoder passwordEncoder;
 
     public UserServiceImpl(UserMapper userMapper,
                            ArticleMapper articleMapper,
                            ArticleLikeMapper articleLikeMapper,
                            ArticleLikeService articleLikeService,
                            JwtUtil jwtUtil,
-                           CacheService cacheService) {
+                           CacheService cacheService,
+                           PasswordEncoder passwordEncoder) {
         this.userMapper = userMapper;
         this.articleMapper = articleMapper;
         this.articleLikeMapper = articleLikeMapper;
         this.articleLikeService = articleLikeService;
         this.jwtUtil = jwtUtil;
         this.cacheService = cacheService;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    private void validateUsername(String username) {
+        if (username.length() < 3 || username.length() > 20) {
+            throw new IllegalArgumentException("用户名长度为 3～20 个字符");
+        }
+        if (!username.matches("^[a-zA-Z0-9_]+$")) {
+            throw new IllegalArgumentException("用户名只能包含字母、数字和下划线");
+        }
+    }
+
+    private boolean isBcryptHash(String stored) {
+        return stored != null && (stored.startsWith("$2a$") || stored.startsWith("$2b$") || stored.startsWith("$2y$"));
+    }
+
+    private boolean matchesPassword(String rawPassword, User user) {
+        String stored = user.getPassword();
+        if (isBcryptHash(stored)) {
+            return passwordEncoder.matches(rawPassword, stored);
+        }
+        if (!rawPassword.equals(stored)) {
+            return false;
+        }
+        user.setPassword(passwordEncoder.encode(rawPassword));
+        userMapper.updateById(user);
+        return true;
     }
 
     @Override
@@ -48,8 +78,13 @@ public class UserServiceImpl implements UserService {
         if (!StringUtils.hasText(username) || !StringUtils.hasText(password)) {
             throw new IllegalArgumentException("用户名和密码不能为空");
         }
+        validateUsername(username.trim());
+        username = username.trim();
         if (password.length() < 6) {
             throw new IllegalArgumentException("密码长度不能少于6位");
+        }
+        if (password.length() > 50) {
+            throw new IllegalArgumentException("密码长度不能超过50位");
         }
 
         Long count = userMapper.selectCount(
@@ -61,7 +96,7 @@ public class UserServiceImpl implements UserService {
 
         User user = new User();
         user.setUsername(username);
-        user.setPassword(password);
+        user.setPassword(passwordEncoder.encode(password));
         user.setCreateTime(LocalDateTime.now());
         userMapper.insert(user);
     }
@@ -79,7 +114,7 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("用户不存在");
         }
 
-        if (!password.equals(user.getPassword())) {
+        if (!matchesPassword(password, user)) {
             throw new IllegalArgumentException("密码错误");
         }
 

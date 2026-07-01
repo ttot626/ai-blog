@@ -26,7 +26,7 @@ management:
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # 开发调试时可打开 SQL 日志：log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
 jwt:
   secret: ai-blog-jwt-secret-key-2026-must-be-long-enough-for-hs256

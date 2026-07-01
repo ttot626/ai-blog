@@ -8,7 +8,7 @@ USE ai_blog;
 CREATE TABLE IF NOT EXISTS user (
     id          BIGINT       NOT NULL AUTO_INCREMENT COMMENT '用户ID',
     username    VARCHAR(50)  NOT NULL COMMENT '用户名',
-    password    VARCHAR(100) NOT NULL COMMENT '密码',
+    password    VARCHAR(255) NOT NULL COMMENT '密码（BCrypt 加密存储）',
     create_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间',
     PRIMARY KEY (id),
     UNIQUE KEY uk_username (username)
