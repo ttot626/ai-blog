@@ -1,0 +1,12 @@
+target/
+.git/
+.idea/
+*.iml
+.env
+C:\AIBlog-build/
+release/
+installer/
+打包EXE.bat
+.github/
+*.md
+!README.md

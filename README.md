@@ -78,6 +78,27 @@ git push origin v1.0.0
 
 > 请使用 `AI Blog.bat` 或 `AI Blog.vbs` 启动，勿用 `AIBlog.exe`。若内置 Java 缺失，运行 `修复启动.bat`。
 
+## 云端部署（所有人共用同一个博客网站）
+
+GitHub 下载的 zip 是**每人本地各用各的**；若要让**所有人通过网址在线发博客、看博客**，需要把 Web 版部署到云服务器。
+
+详细步骤见 **[deploy/云端部署指南.md](deploy/云端部署指南.md)**，核心命令：
+
+```bash
+git clone https://github.com/ttot626/ai-blog.git
+cd ai-blog
+cp .env.example .env    # 修改 DB_PASSWORD、JWT_SECRET
+docker compose up -d --build
+```
+
+部署成功后访问 `http://你的服务器IP:8080`，全员共用同一套数据。
+
+| 对比 | 桌面版 zip | 云端 Web 版 |
+|------|-----------|-------------|
+| 访问 | 仅本机 | 公网 URL，人人可访问 |
+| 数据 | 各自独立 | 共享，文章全员可见 |
+| 适合 | 本地演示 / 作业 | 公开博客、多人社区 |
+
 ## 核心接口
 
 | 接口 | 方法 | 鉴权 |
