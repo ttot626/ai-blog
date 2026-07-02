@@ -70,7 +70,34 @@ class BlogIntegrationTest {
         mockMvc.perform(get("/article/list"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.data[0].title").value("第一篇"));
+                .andExpect(jsonPath("$.data.records[0].title").value("第一篇"))
+                .andExpect(jsonPath("$.data.total").value(1))
+                .andExpect(jsonPath("$.data.page").value(1));
+    }
+
+    @Test
+    void articleListPagination() throws Exception {
+        registerAndLogin("pager", "password123");
+        String token = loginToken("pager", "password123");
+
+        for (int i = 1; i <= 11; i++) {
+            mockMvc.perform(post("/article/add")
+                            .header("Authorization", "Bearer " + token)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"title":"文章%s","content":"正文%s"}
+                                    """.formatted(i, i)))
+                    .andExpect(jsonPath("$.code").value(200));
+        }
+
+        mockMvc.perform(get("/article/list?page=1&size=10"))
+                .andExpect(jsonPath("$.data.records.length()").value(10))
+                .andExpect(jsonPath("$.data.total").value(11))
+                .andExpect(jsonPath("$.data.pages").value(2));
+
+        mockMvc.perform(get("/article/list?page=2&size=10"))
+                .andExpect(jsonPath("$.data.records.length()").value(1))
+                .andExpect(jsonPath("$.data.page").value(2));
     }
 
     @Test
@@ -113,7 +140,7 @@ class BlogIntegrationTest {
                 .andReturn();
 
         JsonNode first = objectMapper.readTree(listResult.getResponse().getContentAsString())
-                .path("data").get(0);
+                .path("data").path("records").get(0);
         assertEquals(articleId, first.path("id").asLong());
         assertTrue(first.path("liked").asBoolean());
         assertEquals(1, first.path("likeCount").asInt());

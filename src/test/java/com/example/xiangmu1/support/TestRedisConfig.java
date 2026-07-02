@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
+import java.util.Collections;
 import java.time.Duration;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -26,6 +27,7 @@ public class TestRedisConfig {
         when(ops.get(anyString())).thenReturn(null);
         doNothing().when(ops).set(anyString(), anyString(), any(Duration.class));
         when(template.delete(anyString())).thenReturn(true);
+        when(template.keys(anyString())).thenReturn(Collections.emptySet());
         return template;
     }
 }

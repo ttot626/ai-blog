@@ -170,12 +170,17 @@ window.router = router;
 window.addEventListener('hashchange', router);
 
 // ========== Pages ==========
-async function renderHome() {
+const ARTICLE_PAGE_SIZE = 10;
+let homePage = 1;
+
+async function renderHome(page = homePage) {
+    homePage = page;
     const [listRes, hotRes] = await Promise.all([
-        API.getArticles(),
+        API.getArticles(page, ARTICLE_PAGE_SIZE),
         API.getHotArticles(5)
     ]);
-    const articles = listRes.data || [];
+    const pageData = listRes.data || {};
+    const articles = pageData.records || [];
     const hot = hotRes.data || [];
     const opts = cardOptionsForList();
 
@@ -188,6 +193,7 @@ async function renderHome() {
                     ${articles.length ? articles.map(a => renderArticleCard(a, opts)).join('') :
                         `<div class="empty"><div class="empty-icon">📝</div><p>还没有文章${Auth.isLoggedIn() ? '，<a href="#/write">写一篇</a>吧' : ''}</p></div>`}
                 </div>
+                ${renderPagination(pageData)}
             </div>
             <aside>
                 <div class="card sidebar-card">
@@ -213,6 +219,7 @@ async function renderHome() {
             </aside>
         </div>`;
     bindListPage();
+    bindPagination(p => renderHome(p));
 }
 
 async function renderHot() {

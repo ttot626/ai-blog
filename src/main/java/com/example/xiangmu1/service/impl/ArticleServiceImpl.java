@@ -1,6 +1,7 @@
 package com.example.xiangmu1.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.xiangmu1.common.LoginUser;
 import com.example.xiangmu1.common.UserContext;
 import com.example.xiangmu1.entity.Article;
@@ -13,6 +14,7 @@ import com.example.xiangmu1.service.ArticleService;
 import com.example.xiangmu1.service.CacheService;
 import com.example.xiangmu1.service.FavoriteService;
 import com.example.xiangmu1.vo.ArticleVO;
+import com.example.xiangmu1.vo.PageResult;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -63,11 +65,16 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     @Override
-    public List<ArticleVO> list() {
-        List<ArticleVO> articles = cacheService.getArticleList(this::loadArticleList, new TypeReference<>() {
-        });
-        enrichUserState(articles);
-        return articles;
+    public PageResult<ArticleVO> list(int page, int size) {
+        int safePage = Math.max(page, 1);
+        int safeSize = Math.min(Math.max(size, 1), 50);
+        PageResult<ArticleVO> result = cacheService.getArticleListPage(
+                safePage, safeSize,
+                () -> loadArticlePage(safePage, safeSize),
+                new TypeReference<>() {
+                });
+        enrichUserState(result.getRecords());
+        return result;
     }
 
     @Override
@@ -107,14 +114,25 @@ public class ArticleServiceImpl implements ArticleService {
         cacheService.evictUserInfo(userId);
     }
 
-    private List<ArticleVO> loadArticleList() {
-        List<Article> articles = articleMapper.selectList(
+    private PageResult<ArticleVO> loadArticlePage(int page, int size) {
+        Page<Article> pageParam = new Page<>(page, size);
+        Page<Article> articlePage = articleMapper.selectPage(
+                pageParam,
                 new LambdaQueryWrapper<Article>().orderByDesc(Article::getCreateTime)
         );
-        Map<Long, String> usernameMap = loadUsernameMap(articles.stream().map(Article::getUserId).collect(Collectors.toSet()));
-        return articles.stream()
+        Map<Long, String> usernameMap = loadUsernameMap(
+                articlePage.getRecords().stream().map(Article::getUserId).collect(Collectors.toSet())
+        );
+        List<ArticleVO> records = articlePage.getRecords().stream()
                 .map(article -> toVO(article, usernameMap.get(article.getUserId()), null))
                 .collect(Collectors.toList());
+        return new PageResult<>(
+                records,
+                articlePage.getTotal(),
+                articlePage.getCurrent(),
+                articlePage.getSize(),
+                articlePage.getPages()
+        );
     }
 
     private List<ArticleVO> loadHotArticles(int limit) {

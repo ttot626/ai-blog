@@ -1,6 +1,7 @@
 package com.example.xiangmu1.service;
 
 import com.example.xiangmu1.vo.ArticleVO;
+import com.example.xiangmu1.vo.PageResult;
 
 import java.util.List;
 
@@ -8,7 +9,7 @@ public interface ArticleService {
 
     Long add(String title, String content, Long userId);
 
-    List<ArticleVO> list();
+    PageResult<ArticleVO> list(int page, int size);
 
     List<ArticleVO> hot(int limit);
 

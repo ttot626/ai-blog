@@ -12,7 +12,7 @@ import java.util.function.Supplier;
 @Service
 public class CacheService {
 
-    private static final String ARTICLE_LIST_KEY = "cache:article:list";
+    private static final String ARTICLE_LIST_PREFIX = "cache:article:list:";
     private static final String HOT_ARTICLE_KEY = "cache:article:hot";
     private static final String USER_INFO_PREFIX = "cache:user:";
 
@@ -34,8 +34,8 @@ public class CacheService {
         this.userInfoTtl = Duration.ofMinutes(userInfoTtlMinutes);
     }
 
-    public <T> T getArticleList(Supplier<T> loader, TypeReference<T> type) {
-        return getOrLoad(ARTICLE_LIST_KEY, loader, type, articleListTtl);
+    public <T> T getArticleListPage(int page, int size, Supplier<T> loader, TypeReference<T> type) {
+        return getOrLoad(ARTICLE_LIST_PREFIX + page + ":" + size, loader, type, articleListTtl);
     }
 
     public <T> T getHotArticles(Supplier<T> loader, TypeReference<T> type) {
@@ -47,8 +47,14 @@ public class CacheService {
     }
 
     public void evictArticleList() {
-        deleteQuietly(ARTICLE_LIST_KEY);
         deleteQuietly(HOT_ARTICLE_KEY);
+        try {
+            var keys = redisTemplate.keys(ARTICLE_LIST_PREFIX + "*");
+            if (keys != null && !keys.isEmpty()) {
+                redisTemplate.delete(keys);
+            }
+        } catch (Exception ignored) {
+        }
     }
 
     public void evictUserInfo(Long userId) {

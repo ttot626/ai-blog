@@ -3,6 +3,8 @@ package com.example.xiangmu1.service.impl;
 import com.example.xiangmu1.common.LoginUser;
 import com.example.xiangmu1.common.UserContext;
 import com.example.xiangmu1.entity.Article;
+import com.example.xiangmu1.vo.PageResult;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.xiangmu1.mapper.ArticleLikeMapper;
 import com.example.xiangmu1.mapper.ArticleMapper;
 import com.example.xiangmu1.mapper.UserMapper;
@@ -19,6 +21,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -51,6 +55,46 @@ class ArticleServiceImplTest {
     @AfterEach
     void tearDown() {
         UserContext.clear();
+    }
+
+    @Test
+    void listUsesPaginationAndCache() {
+        when(cacheService.getArticleListPage(anyInt(), anyInt(), any(), any()))
+                .thenAnswer(invocation -> {
+                    java.util.function.Supplier<?> loader = invocation.getArgument(2);
+                    return loader.get();
+                });
+        when(articleMapper.selectPage(any(Page.class), any())).thenAnswer(invocation -> {
+            Page<Article> page = invocation.getArgument(0);
+            Article article = new Article();
+            article.setId(1L);
+            article.setTitle("标题");
+            article.setContent("内容");
+            article.setUserId(1L);
+            page.setRecords(java.util.List.of(article));
+            page.setTotal(1);
+            page.setCurrent(1);
+            page.setSize(10);
+            page.setPages(1);
+            return page;
+        });
+        when(userMapper.selectBatchIds(any())).thenReturn(java.util.List.of());
+
+        PageResult<?> result = articleService.list(1, 10);
+
+        org.junit.jupiter.api.Assertions.assertEquals(1, result.getTotal());
+        org.junit.jupiter.api.Assertions.assertEquals(1, result.getRecords().size());
+        verify(cacheService).getArticleListPage(eq(1), eq(10), any(), any());
+    }
+
+    @Test
+    void listClampsPageSize() {
+        when(cacheService.getArticleListPage(anyInt(), anyInt(), any(), any()))
+                .thenReturn(new PageResult<>(java.util.List.of(), 0, 1, 50, 0));
+
+        articleService.list(0, 999);
+
+        verify(cacheService).getArticleListPage(eq(1), eq(50), any(), any());
     }
 
     @Test

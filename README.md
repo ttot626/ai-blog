@@ -4,6 +4,68 @@
 
 [![GitHub](https://img.shields.io/badge/GitHub-ttot626%2Fai--blog-blue)](https://github.com/ttot626/ai-blog)
 [![Release](https://img.shields.io/github/v/release/ttot626/ai-blog?label=下载桌面版)](https://github.com/ttot626/ai-blog/releases)
+[![CI](https://img.shields.io/github/actions/workflow/status/ttot626/ai-blog/ci.yml?branch=main&label=tests)](https://github.com/ttot626/ai-blog/actions)
+
+**在线演示：** http://47.97.85.200:8080
+
+## 界面预览
+
+| 首页（文章列表 + 分页） | 登录 / 注册 | 热门文章 |
+|---|---|---|
+| ![首页](docs/screenshots/home.png) | ![登录](docs/screenshots/login.png) | ![热门](docs/screenshots/hot.png) |
+
+## 系统架构
+
+```mermaid
+flowchart TB
+    subgraph Client["客户端"]
+        Web["Web 浏览器<br/>HTML / CSS / JS"]
+        Desktop["JavaFX 桌面版<br/>内嵌 WebView"]
+    end
+
+    subgraph Server["Spring Boot 应用"]
+        Controller["Controller 层<br/>REST API"]
+        Service["Service 层<br/>业务逻辑"]
+        Mapper["MyBatis-Plus<br/>数据访问"]
+        JWT["JWT 拦截器<br/>鉴权"]
+        Cache["CacheService<br/>Redis 缓存"]
+        AI["AiService<br/>DeepSeek API"]
+    end
+
+    subgraph Storage["存储"]
+        MySQL[(MySQL)]
+        Redis[(Redis)]
+    end
+
+    Web --> Controller
+    Desktop --> Controller
+    Controller --> JWT
+    JWT --> Service
+    Service --> Mapper
+    Service --> Cache
+    Service --> AI
+    Mapper --> MySQL
+    Cache --> Redis
+    AI --> DeepSeek["DeepSeek 云端 API"]
+```
+
+### 请求链路（以登录发文章为例）
+
+1. 前端 `POST /user/login` → 后端校验 BCrypt 密码 → 返回 JWT
+2. 前端携带 `Authorization: Bearer <token>` 调用 `POST /article/add`
+3. `JwtInterceptor` 解析 Token，写入 `UserContext`
+4. `ArticleService` 写入 MySQL，并清除 Redis 中的列表/热门缓存
+5. 首页 `GET /article/list?page=1&size=10` → MyBatis-Plus 分页查询 → 可选 Redis 按页缓存
+
+### 技术亮点（面试可讲）
+
+- **JWT 无状态鉴权** + 可选登录（列表接口未登录也能看，点赞需登录）
+- **BCrypt 密码加密**，旧明文密码首次登录自动升级
+- **Redis 缓存**文章分页、热门榜、用户主页，写操作后主动失效
+- **MyBatis-Plus 分页**（`PageResult` 统一返回 total/page/pages）
+- **DeepSeek AI** 辅助摘要、标题、关键词、标签
+- **Docker Compose** 一键部署 MySQL + Redis + App
+- **31 个自动化测试** + GitHub Actions CI
 
 ## 下载桌面版（无需安装 Java）
 
@@ -20,7 +82,7 @@
 | 模块 | 能力 |
 |------|------|
 | 用户 | 注册、登录（JWT）、个人主页 |
-| 文章 | 发布、编辑、删除、列表、详情、热门排行 |
+| 文章 | 发布、编辑、删除、**分页列表**、详情、热门排行 |
 | 互动 | 评论与回复、点赞、收藏 |
 | 缓存 | Redis 缓存文章列表、热门文章、用户信息 |
 | AI | DeepSeek 摘要、标题优化、关键词与标签生成 |
@@ -127,7 +189,7 @@ docker compose up -d --build
 |------|------|------|
 | `/user/register` | POST | 否 |
 | `/user/login` | POST | 否 |
-| `/article/list` | GET | 否 |
+| `/article/list?page=1&size=10` | GET | 否（可选登录，返回点赞/收藏状态） |
 | `/article/hot` | GET | 否 |
 | `/article/add` | POST | 是 |
 | `/article/like` | POST | 是 |
@@ -146,14 +208,32 @@ docker compose up -d --build
 }
 ```
 
+文章列表分页响应示例：
+
+```json
+{
+  "code": 200,
+  "message": "查询成功",
+  "data": {
+    "records": [{ "id": 1, "title": "标题", "content": "正文" }],
+    "total": 100,
+    "page": 1,
+    "size": 10,
+    "pages": 10
+  }
+}
+```
+
 ## 项目结构
 
 ```text
 ├── src/main/java/          # 后端业务代码
+├── src/test/java/          # 单元测试 + 集成测试（31 个）
 ├── src/main/resources/
 │   ├── static/             # Web 前端（HTML / CSS / JS）
 │   ├── application.yml     # 本地开发配置
 │   └── application-prod.yml  # Docker 生产配置
+├── docs/screenshots/       # README 界面截图
 ├── sql/init.sql            # 数据库初始化脚本
 ├── deploy/                 # 云端部署指南与备份脚本
 ├── docker-compose.yml      # Docker 一键部署
@@ -166,7 +246,7 @@ docker compose up -d --build
 
 - 用户密码使用 **BCrypt** 加密存储，数据库中不保存明文
 - 旧账号首次登录会自动升级为 BCrypt 密文
-- 核心逻辑含单元测试与集成测试（`src/test/java`），面试可重点讲解
+- 核心逻辑含 **31 个**自动化测试（`src/test/java`）+ GitHub Actions CI，面试可重点讲解
 - 定期备份：在服务器执行 `deploy/backup.sh` 可导出 MySQL 数据
 - DeepSeek 需账户有余额才能调用，余额不足会返回 402 错误
 - 请勿将 `.env`、真实 API Key 和数据库密码提交到公开仓库

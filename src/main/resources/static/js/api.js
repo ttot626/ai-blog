@@ -76,8 +76,8 @@ const API = {
         });
     },
 
-    getArticles() {
-        return this.request('/article/list');
+    getArticles(page = 1, size = 10) {
+        return this.request(`/article/list?page=${page}&size=${size}`);
     },
 
     getHotArticles(limit = 5) {
@@ -320,4 +320,33 @@ function cardOptionsForList(extra = {}) {
 function bindListPage() {
     bindArticleCards();
     bindCardActions();
+}
+
+function renderPagination(pageData) {
+    if (!pageData || pageData.pages <= 1) return '';
+    const page = Number(pageData.page);
+    const pages = Number(pageData.pages);
+    let buttons = `<button type="button" class="btn btn-sm btn-outline" data-page="${page - 1}" ${page <= 1 ? 'disabled' : ''}>上一页</button>`;
+    for (let i = 1; i <= pages; i++) {
+        if (pages > 7 && i > 2 && i < pages - 1 && Math.abs(i - page) > 1) {
+            if (i === 3 || i === pages - 2) buttons += '<span class="pagination-ellipsis">…</span>';
+            continue;
+        }
+        buttons += `<button type="button" class="btn btn-sm ${i === page ? 'btn-primary' : 'btn-outline'}" data-page="${i}">${i}</button>`;
+    }
+    buttons += `<button type="button" class="btn btn-sm btn-outline" data-page="${page + 1}" ${page >= pages ? 'disabled' : ''}>下一页</button>`;
+    return `
+        <nav class="pagination" aria-label="文章分页">
+            ${buttons}
+            <span class="pagination-info">第 ${page} / ${pages} 页，共 ${pageData.total} 篇</span>
+        </nav>`;
+}
+
+function bindPagination(onPage) {
+    document.querySelectorAll('.pagination [data-page]').forEach(btn => {
+        btn.onclick = () => {
+            const target = Number(btn.dataset.page);
+            if (!btn.disabled && target >= 1) onPage(target);
+        };
+    });
 }

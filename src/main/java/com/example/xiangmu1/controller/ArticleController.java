@@ -39,10 +39,12 @@ public class ArticleController {
         return Result.success("发布成功", Map.of("id", articleId));
     }
 
-    @Operation(summary = "文章列表")
+    @Operation(summary = "文章列表（分页）")
     @GetMapping("/list")
-    public Result<?> list() {
-        return Result.success("查询成功", articleService.list());
+    public Result<?> list(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return Result.success("查询成功", articleService.list(page, size));
     }
 
     @Operation(summary = "热门文章")
