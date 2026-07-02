@@ -4,7 +4,11 @@ const Auth = {
         return raw ? JSON.parse(raw) : null;
     },
     set(user) {
-        localStorage.setItem('ai_blog_user', JSON.stringify(user));
+        localStorage.setItem('ai_blog_user', JSON.stringify({
+            token: user.token,
+            userId: Number(user.userId),
+            username: user.username
+        }));
     },
     clear() {
         localStorage.removeItem('ai_blog_user');
@@ -16,7 +20,8 @@ const Auth = {
         return this.get()?.token || '';
     },
     userId() {
-        return this.get()?.userId || null;
+        const id = this.get()?.userId;
+        return id == null ? null : Number(id);
     },
     username() {
         return this.get()?.username || '';
@@ -32,12 +37,24 @@ const API = {
         const token = Auth.token();
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
-        const res = await fetch(path, { ...options, headers });
+        let res;
+        try {
+            res = await fetch(path, { ...options, headers });
+        } catch {
+            throw new Error('网络连接失败，请检查服务器是否运行');
+        }
+
         let json;
         try {
             json = await res.json();
         } catch {
-            throw new Error('服务器无响应，请确认程序已启动');
+            throw new Error('服务器响应异常');
+        }
+
+        if (json.code === 401) {
+            Auth.clear();
+            updateAuthUI?.();
+            throw new Error(json.message || '登录已过期，请重新登录');
         }
         if (json.code !== 200) {
             throw new Error(json.message || '请求失败');
@@ -81,7 +98,7 @@ const API = {
     editArticle(id, title, content) {
         return this.request('/article/edit', {
             method: 'POST',
-            body: JSON.stringify({ id, title, content })
+            body: JSON.stringify({ id: Number(id), title, content })
         });
     },
 
@@ -102,8 +119,8 @@ const API = {
     },
 
     addComment(articleId, content, parentId = null) {
-        const body = { articleId, content };
-        if (parentId) body.parentId = parentId;
+        const body = { articleId: Number(articleId), content };
+        if (parentId) body.parentId = Number(parentId);
         return this.request('/comment/add', {
             method: 'POST',
             body: JSON.stringify(body)
@@ -159,23 +176,30 @@ const API = {
     }
 };
 
+function sameUserId(a, b) {
+    if (a == null || b == null) return false;
+    return Number(a) === Number(b);
+}
+
 function formatDate(time) {
     if (!time) return '';
     let d;
     if (Array.isArray(time)) {
-        const [y, mo, day, h = 0, mi = 0] = time;
-        d = new Date(y, mo - 1, day, h, mi);
+        const [y, mo, day, h = 0, mi = 0, s = 0] = time;
+        d = new Date(y, mo - 1, day, h, mi, s);
+    } else if (typeof time === 'string' && !time.includes('T')) {
+        d = new Date(time.replace(' ', 'T'));
     } else {
         d = new Date(time);
     }
-    if (isNaN(d.getTime())) return '';
+    if (isNaN(d.getTime())) return String(time);
     const pad = n => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/&/g, '&amp;')
+    if (str == null) return '';
+    return String(str).replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
@@ -191,7 +215,7 @@ function toast(msg, type = 'info') {
     el.className = `toast ${type === 'error' ? 'error' : type === 'success' ? 'success' : ''}`;
     el.textContent = msg;
     document.getElementById('toast-container').appendChild(el);
-    setTimeout(() => el.remove(), 3000);
+    setTimeout(() => el.remove(), 3200);
 }
 
 function requireAuth() {
@@ -204,22 +228,96 @@ function requireAuth() {
 }
 
 function renderArticleCard(article, options = {}) {
-    const { showActions = false, linkPrefix = '#/article/' } = options;
+    const { showActions = false, showOwnerActions = false } = options;
     const liked = article.liked ? 'active-like' : '';
     const fav = article.favorited ? 'active-fav' : '';
+    const isOwner = showOwnerActions && sameUserId(Auth.userId(), article.userId);
     return `
         <article class="card card-clickable" data-id="${article.id}">
             <h3 class="card-title">${escapeHtml(article.title)}</h3>
             <div class="card-meta">
-                <span>@${escapeHtml(article.username || '未知')}</span>
+                <a href="#/profile/${article.userId}" class="author-link" onclick="event.stopPropagation()">@${escapeHtml(article.username || '未知')}</a>
                 <span>${formatDate(article.createTime)}</span>
                 <span>❤ ${article.likeCount || 0}</span>
             </div>
             <p class="card-excerpt">${escapeHtml(truncate(article.content))}</p>
-            ${showActions ? `
+            ${showActions || isOwner ? `
             <div class="card-actions" onclick="event.stopPropagation()">
-                <button class="btn btn-sm btn-outline ${liked}" data-like="${article.id}">${article.liked ? '已赞' : '点赞'}</button>
-                <button class="btn btn-sm btn-outline ${fav}" data-fav="${article.id}">${article.favorited ? '已收藏' : '收藏'}</button>
+                ${showActions ? `
+                <button class="btn btn-sm btn-outline ${liked}" data-like="${article.id}">${article.liked ? '已赞' : '👍 点赞'}</button>
+                <button class="btn btn-sm btn-outline ${fav}" data-fav="${article.id}">${article.favorited ? '已收藏' : '⭐ 收藏'}</button>` : ''}
+                ${isOwner ? `
+                <a href="#/edit/${article.id}" class="btn btn-sm btn-outline">编辑</a>
+                <button class="btn btn-sm btn-danger" data-del-article="${article.id}">删除</button>` : ''}
             </div>` : ''}
         </article>`;
+}
+
+function bindArticleCards() {
+    document.querySelectorAll('.card-clickable').forEach(card => {
+        card.onclick = (e) => {
+            if (e.target.closest('.card-actions') || e.target.closest('.author-link')) return;
+            location.hash = `#/article/${card.dataset.id}`;
+        };
+    });
+}
+
+function bindCardActions() {
+    document.querySelectorAll('[data-like]').forEach(btn => {
+        btn.onclick = async (e) => {
+            e.stopPropagation();
+            if (!requireAuth()) return;
+            const id = btn.dataset.like;
+            try {
+                if (btn.classList.contains('active-like')) {
+                    await API.unlikeArticle(id);
+                    toast('已取消点赞');
+                } else {
+                    await API.likeArticle(id);
+                    toast('点赞成功', 'success');
+                }
+                router();
+            } catch (err) { toast(err.message, 'error'); }
+        };
+    });
+    document.querySelectorAll('[data-fav]').forEach(btn => {
+        btn.onclick = async (e) => {
+            e.stopPropagation();
+            if (!requireAuth()) return;
+            const id = btn.dataset.fav;
+            try {
+                if (btn.classList.contains('active-fav')) {
+                    await API.removeFavorite(id);
+                    toast('已取消收藏');
+                } else {
+                    await API.addFavorite(id);
+                    toast('收藏成功', 'success');
+                }
+                router();
+            } catch (err) { toast(err.message, 'error'); }
+        };
+    });
+    document.querySelectorAll('[data-del-article]').forEach(btn => {
+        btn.onclick = async (e) => {
+            e.stopPropagation();
+            if (!confirm('确定删除这篇文章？')) return;
+            try {
+                await API.deleteArticle(btn.dataset.delArticle);
+                toast('删除成功', 'success');
+                router();
+            } catch (err) { toast(err.message, 'error'); }
+        };
+    });
+}
+
+function cardOptionsForList(extra = {}) {
+    return {
+        showActions: Auth.isLoggedIn(),
+        ...extra
+    };
+}
+
+function bindListPage() {
+    bindArticleCards();
+    bindCardActions();
 }
