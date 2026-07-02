@@ -38,7 +38,11 @@ bin/
 
 ### Environment ###
 .env
-.env.local
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
 
 ### Postman ###
 postman/

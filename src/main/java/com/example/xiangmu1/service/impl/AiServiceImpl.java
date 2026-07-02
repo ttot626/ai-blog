@@ -54,8 +54,8 @@ public class AiServiceImpl implements AiService {
         if (!StringUtils.hasText(content)) {
             throw new IllegalArgumentException("内容不能为空");
         }
-        if (!StringUtils.hasText(apiKey) || apiKey.contains("请替换")) {
-            throw new IllegalArgumentException("请先在 application.yml 或环境变量 DEEPSEEK_API_KEY 中配置 DeepSeek API Key");
+        if (!StringUtils.hasText(apiKey)) {
+            throw new IllegalArgumentException("请配置 DeepSeek API Key（环境变量 DEEPSEEK_API_KEY 或 .env 文件）");
         }
 
         Map<String, Object> body = Map.of(
@@ -78,7 +78,14 @@ public class AiServiceImpl implements AiService {
             JsonNode root = objectMapper.readTree(responseBody);
             return root.path("choices").path(0).path("message").path("content").asText();
         } catch (Exception e) {
-            throw new IllegalArgumentException("AI 服务调用失败：" + e.getMessage());
+            String msg = e.getMessage() != null ? e.getMessage() : "";
+            if (msg.contains("402") || msg.contains("Insufficient Balance")) {
+                throw new IllegalArgumentException("DeepSeek 账户余额不足，请前往 https://platform.deepseek.com 充值后再试");
+            }
+            if (msg.contains("401") || msg.contains("Authentication")) {
+                throw new IllegalArgumentException("DeepSeek API Key 无效，请检查 DEEPSEEK_API_KEY 是否正确");
+            }
+            throw new IllegalArgumentException("AI 服务调用失败：" + msg);
         }
     }
 }

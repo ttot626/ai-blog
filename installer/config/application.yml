@@ -8,3 +8,9 @@ spring:
     password: 123456
 
 # 修改上面的 password 为你的 MySQL 密码后保存，重启 AI Blog 生效
+
+deepseek:
+  # 通过系统环境变量 DEEPSEEK_API_KEY 配置，勿将真实密钥写入此文件
+  api-key: ${DEEPSEEK_API_KEY:}
+  base-url: https://api.deepseek.com
+  model: deepseek-chat

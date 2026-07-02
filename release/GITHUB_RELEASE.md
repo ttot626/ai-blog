@@ -19,7 +19,7 @@
 
 - Windows 10 / 11（64 位）
 - MySQL 8
-- Redis、DeepSeek API Key 为可选
+- Redis、DeepSeek API Key（环境变量 `DEEPSEEK_API_KEY`）为可选
 
 ### 更新日志
 
