@@ -6,7 +6,9 @@
 [![Release](https://img.shields.io/github/v/release/ttot626/ai-blog?label=下载桌面版)](https://github.com/ttot626/ai-blog/releases)
 [![CI](https://img.shields.io/github/actions/workflow/status/ttot626/ai-blog/ci.yml?branch=main&label=tests)](https://github.com/ttot626/ai-blog/actions)
 
-**在线演示：** http://47.97.85.200:8080
+**在线演示：** http://47.97.85.200:8080  
+
+📖 **[实习求职与部署完整指南](docs/实习与部署指南.md)**（简历、面试、服务器更新一条龙）
 
 ## 界面预览
 
