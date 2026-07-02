@@ -59,6 +59,14 @@ Redis 未启动时项目仍可运行，缓存会自动降级为直接查库。
 mvn spring-boot:run
 ```
 
+**运行测试：**
+
+```bash
+mvn test
+```
+
+测试使用 H2 内存数据库 + Mock Redis，无需本地 MySQL/Redis 即可执行。推送代码后 GitHub Actions 会自动跑测试。
+
 | 模式 | 入口类 | 说明 |
 |------|--------|------|
 | 网页版 | `Xiangmu1Application` | 浏览器访问 http://localhost:8080 |
@@ -158,6 +166,7 @@ docker compose up -d --build
 
 - 用户密码使用 **BCrypt** 加密存储，数据库中不保存明文
 - 旧账号首次登录会自动升级为 BCrypt 密文
+- 核心逻辑含单元测试与集成测试（`src/test/java`），面试可重点讲解
 - 定期备份：在服务器执行 `deploy/backup.sh` 可导出 MySQL 数据
 - DeepSeek 需账户有余额才能调用，余额不足会返回 402 错误
 - 请勿将 `.env`、真实 API Key 和数据库密码提交到公开仓库
